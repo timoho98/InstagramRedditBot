@@ -1,5 +1,4 @@
 import json, requests, datetime, praw, pprint, ConfigParser, sys, getopt
-from instagram.client import InstagramAPI
 
 # Get your key/secret from http://instagram.com/developer/
 config = ConfigParser.ConfigParser()
@@ -104,18 +103,20 @@ def submittoreddit(url,  linkcaption, source): #post to subreddit, param url, an
 def checkimage (media , idjson): #check if image is later than the lastdate on file, returns a true or false
     Instagram_username = media['user']['username']
     lastdate = idjson['lastdate']
-    #print 'Last Date:' + lastdate
     if int(media['created_time']) > int(lastdate): #check date then check filetype
         print 'Found new media for ' + Instagram_username
         logstuff("Image:" + media['id'] + " created date:" + datetime.datetime.fromtimestamp(int(media['created_time'])).strftime('%Y-%m-%d %H:%M:%S') + " after " + datetime.datetime.fromtimestamp(int(lastdate)).strftime('%Y-%m-%d %H:%M:%S'))
         return True
     else:
+        #print media['created_time'] + 'olderthan' + lastdate
         return False
+
 def checktype (imagemedia): #check if json is video or image, returns a 1 if image, returns a 2 if video
     if imagemedia['type'] == 'image':
         return 1
     elif imagemedia['type'] == 'video':
         return 2
+
 def processimage (imagemedia): #process the media given a media json
     Instagram_username = imagemedia['user']['username']
     #gather data from media obj
@@ -177,8 +178,8 @@ for opt, arg in opts:
             updatewithid(ids)
     elif opt in ('-h', '--help'):
         print 'The current commands are:'
-        print 'User (Username update a specific id'
-        print 'Check basicly go through all ids and check'
+        print '-user, - u: (Username) update a specific id'
+        print '-check, -c :basicly go through all ids and check'
 
 #write with updated json
 #updatedjson = writetodatejson(date = 230492, username= 'test', jsondict= jsoniddata)
