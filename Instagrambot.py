@@ -1,8 +1,10 @@
-import json, requests, datetime, praw, pprint, ConfigParser, sys, getopt
-
+#!/usr/bin/python
+import json, requests, datetime, praw, pprint, ConfigParser, sys, getopt, os
+#jexec -u root -n PythonScript sh python /mnt/script/InstagramRedditBot/Instagrambot.py -h
 # Get your key/secret from http://instagram.com/developer/
 config = ConfigParser.ConfigParser()
-config.read("config.ini")
+config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini'))
+#config.read("config2.ini")
 INSTAGRAM_CLIENT_ID = config.get("instagram", "clientid")
 INSTAGRAM_CLIENT_SECRET = config.get("instagram", "clientsecret")
 IMGUR_CLIENT_ID = config.get("imgur", "clientid")
@@ -19,7 +21,7 @@ updatedjson = []
 
 #file loading
 #loading Json from target file
-with open(TARGET_JSON_FILE) as Jsonidfile:
+with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), TARGET_JSON_FILE)) as Jsonidfile:
     jsoniddata = json.load(Jsonidfile)
 
 r = praw.Reddit(user_agent=REDDIT_USERAGENT)
