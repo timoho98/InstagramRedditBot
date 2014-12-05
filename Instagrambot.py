@@ -4,7 +4,6 @@ import json, requests, datetime, praw, pprint, ConfigParser, sys, getopt, os
 # Get your key/secret from http://instagram.com/developer/
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini'))
-#config.read("config2.ini")
 INSTAGRAM_CLIENT_ID = config.get("instagram", "clientid")
 INSTAGRAM_CLIENT_SECRET = config.get("instagram", "clientsecret")
 IMGUR_CLIENT_ID = config.get("imgur", "clientid")
@@ -21,6 +20,7 @@ updatedjson = []
 
 #file loading
 #loading Json from target file
+#print os.path.join(os.path.abspath(os.path.dirname(__file__)), TARGET_JSON_FILE)
 with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), TARGET_JSON_FILE)) as Jsonidfile:
     jsoniddata = json.load(Jsonidfile)
 
@@ -32,7 +32,7 @@ def logstuff (text): #automaticly adds the new like '\n' at the end of every ent
     currentdaymonthyear = str(currentunixtimestamp.year) + "-" + str(currentunixtimestamp.month) + "-" + str(currentunixtimestamp.day)
     #print currentdaymonthyear
     print ("Logged: " + text + " in " + currentdaymonthyear + ".log")
-    log = open(currentdaymonthyear + ".log", "a")
+    log = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), currentdaymonthyear + ".log"), "ab")
     log.write(text + '\n')
     log.close()
 
@@ -128,7 +128,7 @@ def processimage (imagemedia): #process the media given a media json
         caption = "No Caption"
     else:
         caption = imagemedia['caption']['text']
-        print 'Caption:' + caption
+        #print 'Caption:' + caption #Removed because cant print special chars
     #print str(imagemedia['caption'])
     logstuff("Starting Upload of image " + str(imagemedia['id']))
     imgurjson = imgurupload(imageurl, caption)
@@ -176,18 +176,19 @@ for opt, arg in opts:
             print "error " + arg + " does not exist in config"
     elif opt in ('-c', '--check'):
        for ids in jsoniddata:
-            print "print id" + ids
             updatewithid(ids)
-    elif opt in ('-h', '--help'):
+    elif opt in ('-h', '--help', ''):
         print 'The current commands are:'
-        print '-user, - u: (Username) update a specific id'
-        print '-check, -c :basicly go through all ids and check'
+        print '--user, -u: Params: (Username), update a specific id'
+        print '--check, -c: No Params: basically go through all ids and check'
+    else:
+        print 'No command detected, please add -h or --help at the end of console command to bring up a list of commands'
 
 #write with updated json
-#updatedjson = writetodatejson(date = 230492, username= 'test', jsondict= jsoniddata)
-"""
+#Test Update String#updatedjson = writetodatejson(date = 230492, username= 'test', jsondict= jsoniddata)
 with open(TARGET_JSON_FILE, 'w') as newjsonfile: #part where we write to file
     json.dump(updatedjson, newjsonfile, indent = 4, separators=(', ', ': '))
-"""
+print "Updated json file"
+
 
 
