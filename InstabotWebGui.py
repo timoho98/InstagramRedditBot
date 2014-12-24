@@ -11,16 +11,26 @@ def hello_world():
 @app.route('/testrender', methods = ['POST' , 'GET'])
 def testrender():
     if request.method == 'POST':
-        if request.form['submit'] == 'Do Something':
+        if request.form['thing'] == 'Do Something':
             print "Do Something"
-        elif request.form['submit'] == 'Do Something Else':
+        elif request.form['thing'] == 'Do Something Else':
             print "Else"
         else:
             print "placeholder"
     return render_template("test.html")
-@app.route('/listusers')
+@app.route('/listusers', methods = ['POST' , 'GET'])
 def listusers():
+    if request.method == 'POST':
+        print request.form['id']
     return render_template("idlist.html", idlist = Instagrambot.jsoniddata)
+@app.route('/listclick', methods = ['GET'])
+def listget():
+    getname = request.args.get('id')
+    if Instagrambot.checkifnameindata(getname):
+        nameid = Instagrambot.getidfromname(getname)
+        print nameid
+    print request.args.get('id')
+    return render_template("listclick.html", id = nameid)
 @app.route('/checkuser', methods = ['POST', 'GET'])
 def checkuser():
     if request.method == 'POST':

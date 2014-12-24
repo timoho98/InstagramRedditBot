@@ -8,5 +8,12 @@
 {% for id in idlist %}
     <li>{{id['name']}}
 {% endfor %}
+<form action="/listclick" method="get">
+    {% for id in idlist %}
+        <p>
+        <input type = 'submit' name = 'id' value={{id['name']}}>
+        </p>
+    {% endfor %}
+</form>
 </body>
 </html>

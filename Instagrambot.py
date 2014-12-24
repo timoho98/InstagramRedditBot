@@ -33,14 +33,12 @@ updatedjson = copy.deepcopy(jsoniddata)
 #submissionobj = postsubreddit.get_flair_choices(link = 'http://redd.it/2ocgcv')
 #print submissionobj
 
-#TODO Change how month day year hour and min are get to datetime ex #datetime.datetime.fromtimestamp(int(media['created_time'])).strftime('%Y-%m-%d %H:%M:%S')
 def logstuff (text): #automaticly adds the new like '\n' at the end of every entry
-    currenttime = str(currentunixtimestamp.hour) + ":" + str(currentunixtimestamp.minute)
-    currentdaymonthyear = str(currentunixtimestamp.year) + "-" + str(currentunixtimestamp.month) + "-" + str(currentunixtimestamp.day)
-    #print currentdaymonthyear
-    print ("Logged: " + text + " in " + currentdaymonthyear + ".log at " + currenttime)
-    log = open(os.path.join(current_path, currentdaymonthyear + ".log"), "ab")
-    log.write(currentdaymonthyear + " " + currenttime + ": " +text + '\n')
+    time = datetime.datetime.fromtimestamp(currentunixtimestamp).strftime('%H:%M:%S')
+    date = datetime.datetime.fromtimestamp(currentunixtimestamp).strftime('%Y-%m-%d')
+    print ("Logged: " + text + " in " + date + ".log at " + time)
+    log = open(os.path.join(current_path, date + ".log"), "ab")
+    log.write(date + " " + time + ": " +text + '\n')
     log.close()
 
 #uploads image to imgur returns False if fails, params need .jpq url and title
@@ -62,9 +60,16 @@ def imgurupload (imageurl, title):
         return False
 
 #check if username exists in data jsoniddata
-def checkifidindata (username):
+def checkifnameindata (username):
     for i in jsoniddata:
         if i['name'] == username:
+            return True
+    return False
+
+#check if id exists in data jsoniddata
+def checkifidindata (userid):
+    for i in jsoniddata:
+        if i['id'] == userid:
             return True
     return False
 
@@ -103,6 +108,21 @@ def getlistid():
         idstring += '\n'
     return idstring
 
+#Get id from name input
+def getidfromname(name):
+    for i in jsoniddata:
+        if i['name'] == name:
+            return i['userid']
+#Get Json Dict from id
+def getjsondict (id):
+    if type(id) is int:
+        for i in jsoniddata:
+            if i['id'] == id:
+                return i
+    if type(id) is str:
+        for i in jsoniddata:
+            if i['name'] == id:
+                return i
 #list ids as well as last dates
 def getlistiddate():
     iddatestring = []
@@ -204,11 +224,11 @@ def updatewithid (iddict):
     for m in mediaJSON['data']:
         if checkimage(media = m, idjson = iddict):
             if m['type'] == 'image':
-                processimage(imagemedia= m)
+                processimage(imagemedia=m)
             elif m['type'] == 'video':
                 processvideo(m)
             lastpartoflink = getendoflink(m['link'])
-            writetodatejson(date = m['created_time'], username= m['user']['username'])
+            writetodatejson(date = m['created_time'], username=m['user']['username'])
 
 if __name__ == "__main__": #only runs if not loaded as a module
     arguments = sys.argv[1:] #get arguments after the command run
@@ -220,7 +240,7 @@ if __name__ == "__main__": #only runs if not loaded as a module
         if opt in ('-t, --test'):
             print 'test'
         elif opt in ('-u', '--user'):
-            if checkifidindata(username=arg):
+            if checkifnameindata(username=arg):
                 for id in jsoniddata: #parse through list to find the id there is probably a better way to do this or organize data better but idk what it is
                     if id['name'] == str(arg):
                         updatewithid(id)
@@ -245,6 +265,3 @@ if __name__ == "__main__": #only runs if not loaded as a module
             print getlistid()
         else:
             print 'No command detected, please add -h or --help at the end of console command to bring up a list of commands'
-
-
-
