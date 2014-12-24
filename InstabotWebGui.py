@@ -22,12 +22,12 @@ def testrender():
 def listusers():
     if request.method == 'POST':
         print request.form['id']
-    return render_template("idlist.html", idlist = Instagrambot.jsoniddata)
+    return render_template("idlist.html", idlist = Instagrambot.jsonIdData)
 @app.route('/listclick', methods = ['GET'])
 def listget():
     getname = request.args.get('id')
-    if Instagrambot.checkifnameindata(getname):
-        nameid = Instagrambot.getidfromname(getname)
+    if Instagrambot.checkIfNameInData(getname):
+        nameid = Instagrambot.getIdFromName(getname)
         print nameid
     print request.args.get('id')
     return render_template("listclick.html", id = nameid)
@@ -35,6 +35,6 @@ def listget():
 def checkuser():
     if request.method == 'POST':
         print request.form['submit']
-    return render_template("usercheck.html", idlist = Instagrambot.jsoniddata, lastdate = Instagrambot.getlistiddate())
+    return render_template("usercheck.html", idlist = Instagrambot.jsonIdData, lastdate = Instagrambot.getListIdDate())
 app.run()
 
