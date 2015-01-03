@@ -158,7 +158,7 @@ def getMediaJSON(userId):
     mediaReturnJSON = mediaReturn.json()
     return mediaReturnJSON
 
-
+# TODO add caption to comment if caption too long
 # Generates Text for comment
 def generateCommentText(source):
     commentString = "[Source](" + source + ")"  # format source text
@@ -219,7 +219,11 @@ def processImage(imageJson):
         print "Text/title dne"
         caption = "No Caption"
     else:
-        caption = imageJson['caption']['text']
+        # Check if caption is less than 300 char
+        if len(imageJson['caption']['text']) < 300:
+            caption = imageJson['caption']['text']
+        else:
+            caption = "Caption too long posted in comments"
         # print 'Caption:' + caption #Removed because cant print special chars
     # print str(imagemedia['caption'])
     logStuff("Starting Upload of image " + str(imageJson['link']))
