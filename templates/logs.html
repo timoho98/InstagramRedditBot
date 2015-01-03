@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+Below are a list of logs
+{% for file in filelist %}
+<br><a href='/logs/{{file}}'>{{file}}</a>
+{% endfor %}
+</body>
+</html>

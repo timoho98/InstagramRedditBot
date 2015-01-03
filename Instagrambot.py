@@ -1,5 +1,14 @@
 #!/usr/bin/python
-import json, requests, datetime, praw, ConfigParser, sys, getopt, os, copy, time
+import json
+import requests
+import datetime
+import praw
+import ConfigParser
+import sys
+import getopt
+import os
+import copy
+import time
 # jexec -u root -n PythonScript sh python /mnt/script/InstagramRedditBot/Instagrambot.py -h
 current_path = os.path.abspath(os.path.dirname(__file__))
 # Get your key/secret from http://instagram.com/developer/
@@ -14,8 +23,7 @@ REDDIT_USERNAME = config.get("reddit", "username")
 REDDIT_PASSWORD = config.get("reddit", "password")
 REDDIT_SUBREDDIT = config.get("reddit", "subreddit")
 TARGET_JSON_FILE = config.get("File", "Name")
-currentunixtimestamp = time.time()
-# TODO Video processing
+# TODO Video processing (kinda done?)
 # TODO Error Handling for instagram and Reddit
 
 r = praw.Reddit(user_agent=REDDIT_USERAGENT)
@@ -32,13 +40,12 @@ with open(os.path.join(current_path, TARGET_JSON_FILE)) as jsonIdFile:
 # jsonIdData is used as reference to old data so updatedJson can be changed without waiting for program to end
 updatedJson = copy.deepcopy(jsonIdData)
 
-
 # automaticly adds the new like '\n' at the end of every entry
 def logStuff(text):
-    time_ = datetime.datetime.fromtimestamp(currentunixtimestamp).strftime('%H:%M:%S')
-    date = datetime.datetime.fromtimestamp(currentunixtimestamp).strftime('%Y-%m-%d')
+    time_ = datetime.datetime.utcfromtimestamp(time.time()).strftime('%H:%M:%S')
+    date = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%d')
     print ("Logged: '" + text + "' in " + date + ".log at " + time_)
-    log = open(os.path.join(current_path, date + ".log"), "ab")
+    log = open(os.path.join(current_path + '\\logs', date + ".log"), "ab")
     log.write(date + " " + time_ + ": " + text + '\n')
     log.close()
 
@@ -58,8 +65,8 @@ def imgurUpload(imageUrl, title):
     else:
         print j['status']
         print "Failed"
-        logStuff("Failed to Upload Image returned with error" + j['status'])
-        return False
+        logStuff("Failed to Upload Image returned with error " + str(j['status']))
+        return j
 
 
 # check if username exists in data jsoniddata
@@ -88,13 +95,17 @@ def chooseFlair(username):
 
 # more updated version of write to date updates json file with data and username
 def writeToDateJson(date, username):
-    global updatedJson  # updates global var
-    for j in updatedJson:
-        # Images not passed in chronological order and there are multiple images in one pass
-        if j['name'] == username:
-            if j['lastdate'] < date:
-                j['lastdate'] = date
-                logStuff('Updated last date to ' + str(date) + ' for:' + username)
+    if type(date) is int:
+        global updatedJson  # updates global var
+        for j in updatedJson:
+            # Make sure you actually write the 'LastDate' as media not in chronological order
+            # TODO attempt to make it chornological
+            if j['name'] == username:
+                if j['lastdate'] < date:
+                    j['lastdate'] = date
+                    logStuff('Updated last date to ' + str(date) + ' for:' + username)
+    else:
+        print 'Date provided to writeToDateJson not a int'
 
 
 # Gets the last part of a instagramlink for later uses
@@ -119,7 +130,7 @@ def getIdFromName(name):
             return i['userid']
 
 
-# Get Json Dict from id
+# Get Json Dict from id or name
 def getJsonDict(id):
     if type(id) is int:
         for i in jsonIdData:
@@ -135,7 +146,7 @@ def getJsonDict(id):
 def getListIdDate():
     idDateString = []
     for id_ in jsonIdData:
-        idDateString.append(id_['name'] + ' - ' + str(datetime.datetime.fromtimestamp(int(id_['lastdate']))) + '\n')
+        idDateString.append(id_['name'] + ' - ' + str(datetime.datetime.utcfromtimestamp(id_['lastdate'])) + '\n')
     return idDateString
 
 
@@ -178,10 +189,11 @@ def submitToReddit(url, linkCaption, source):
 def checkImage(media, idJson):
     instagramUsername = media['user']['username']
     lastDate = idJson['lastdate']
-    if int(media['created_time']) > int(lastDate):  # check date then check filetype
+    createdTime = int(media['created_time'])
+    if createdTime > lastDate:  # check date then check filetype
         logStuff("New Media for " + instagramUsername + " found at :" + media[
-            'link'] + " created date:" + datetime.datetime.fromtimestamp(int(media['created_time'])).strftime(
-            '%Y-%m-%d %H:%M:%S') + " after Last-Date:" + datetime.datetime.fromtimestamp(int(lastDate)).strftime(
+            'link'] + " created date:" + datetime.datetime.utcfromtimestamp(createdTime).strftime(
+            '%Y-%m-%d %H:%M:%S') + " after Last-Date:" + datetime.datetime.utcfromtimestamp(lastDate).strftime(
             '%Y-%m-%d %H:%M:%S'))
         return True
     else:
@@ -213,11 +225,11 @@ def processImage(imageJson):
     logStuff("Starting Upload of image " + str(imageJson['link']))
     imgurjson = imgurUpload(imageUrl, caption)
     if imgurjson['success']:
-        submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, source=image_json['link'])
-        r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagram_username))
+        submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, source=imageJson['link'])
+        r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
         logStuff("Selected flair for " + instagramUsername)
         # flair_template_id= 'd1e51b54-5fb1-11e4-a579-12313b0e5086') #flair_template_id= chooseflair(username = Instagram_username))
-    logStuff("Finished Processing image for " + instagramUsername + " Imageid: " + image_json['id'])
+    logStuff("Finished Processing image for " + instagramUsername + " Imageid: " + imageJson['id'])
 
 
 # Do processing for video
@@ -239,9 +251,9 @@ def processVideo(videoJson):
 def updateWithId(iddict):
     mediaJSON = getMediaJSON(iddict)
     # TODO Change to logstuff
-    print "Checking id:" + iddict['name']
+    print "Checking user:" + iddict['name']
     print "Last Date:" + str(iddict['lastdate'])
-    # print "Print mediajson" + str(mediaJSON)
+    # print "Print mediajson " + str(mediaJSON)
     for m in mediaJSON['data']:
         if checkImage(media=m, idJson=iddict):
             if m['type'] == 'image':
@@ -249,7 +261,7 @@ def updateWithId(iddict):
             elif m['type'] == 'video':
                 processVideo(m)
             # lastpartoflink = getEndOfLink(m['link'])
-            writeToDateJson(date=m['created_time'], username=m['user']['username'])
+            writeToDateJson(date=int(m['created_time']), username=m['user']['username'])
 
 
 if __name__ == "__main__":  # Only runs if not loaded as a module

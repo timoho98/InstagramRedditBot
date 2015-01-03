@@ -5,13 +5,10 @@
     <title></title>
 </head>
 <body>
-Below are specific users you can run a check on
-<form action="/checkuser" method="post">
+Below are instagram users you can run a update on
+<form action="/userclick" method="get">
 {% for id in idlist %}
-    <p><input type="submit" name="submit" value={{id['name']}}></p>
-{% endfor %}
-{% for id in idlist %}
-    <p></p>
+    <p><input type="submit" name="id" value={{id['name']}}></p>
 {% endfor %}
 </form>
 </body>
