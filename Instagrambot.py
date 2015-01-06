@@ -158,10 +158,13 @@ def getMediaJSON(userId):
     mediaReturnJSON = mediaReturn.json()
     return mediaReturnJSON
 
+
 # TODO add caption to comment if caption too long
 # Generates Text for comment
-def generateCommentText(source):
+def generateCommentText(source, caption=None, tooLong = False):
     commentString = "[Source](" + source + ")"  # format source text
+    if tooLong:
+        commentString += "\n\n" + caption + ""
     return commentString
 
 
@@ -177,11 +180,11 @@ allow for true false if should be enabled
 
 
 # Post to subreddit, param url, and add comment at the end of submission
-def submitToReddit(url, linkCaption, source):
+def submitToReddit(url, linkCaption, commentString):
     redditSubmission = postsubreddit.submit(title=linkCaption, url=url)
     # TODO add more things to comment
     logStuff("Submitted Link to Reddit at " + redditSubmission.short_link)
-    redditSubmission.add_comment(generateCommentText(source))
+    redditSubmission.add_comment(commentString)
     return redditSubmission
 
 
@@ -219,17 +222,18 @@ def processImage(imageJson):
         print "Text/title dne"
         caption = "No Caption"
     else:
-        # Check if caption is less than 300 char
-        if len(imageJson['caption']['text']) < 300:
-            caption = imageJson['caption']['text']
-        else:
-            caption = "Caption too long posted in comments"
+        caption = imageJson['caption']['text']
         # print 'Caption:' + caption #Removed because cant print special chars
     # print str(imagemedia['caption'])
     logStuff("Starting Upload of image " + str(imageJson['link']))
     imgurjson = imgurUpload(imageUrl, caption)
     if imgurjson['success']:
-        submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, source=imageJson['link'])
+        # Check if caption is greater than 300 char
+        if len(imageJson['caption']['text']) > 300:
+            caption = "Caption too long posted in comments"
+            long = True
+        commentstring = generateCommentText(caption=caption, source=imageJson['link'], tooLong=long)
+        submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, commentString=commentstring)
         r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
         logStuff("Selected flair for " + instagramUsername)
         # flair_template_id= 'd1e51b54-5fb1-11e4-a579-12313b0e5086') #flair_template_id= chooseflair(username = Instagram_username))
@@ -292,7 +296,7 @@ if __name__ == "__main__":  # Only runs if not loaded as a module
             for ids in jsonIdData:
                 updateWithId(ids)
             with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
-                json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': '))
+                json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
             logStuff("Updated Jsonfile")
         elif opt in ('-h', '--help'):
             print 'The current commands are:'
