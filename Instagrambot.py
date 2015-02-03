@@ -40,6 +40,7 @@ with open(os.path.join(current_path, TARGET_JSON_FILE)) as jsonIdFile:
 # jsonIdData is used as reference to old data so updatedJson can be changed without waiting for program to end
 updatedJson = copy.deepcopy(jsonIdData)
 
+
 # automaticly adds the new like '\n' at the end of every entry
 def logStuff(text):
     time_ = datetime.datetime.utcfromtimestamp(time.time()).strftime('%H:%M:%S')
@@ -232,6 +233,8 @@ def processImage(imageJson):
         if len(imageJson['caption']['text']) > 300:
             caption = "Caption too long posted in comments"
             long = True
+        else:
+            long = False
         commentstring = generateCommentText(caption=caption, source=imageJson['link'], tooLong=long)
         submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, commentString=commentstring)
         r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
@@ -249,7 +252,14 @@ def processVideo(videoJson):
         caption = "No Caption"
     else:
         caption = videoJson['caption']['text']
-    submittedLink = submitToReddit(url=videoUrl, linkCaption=caption, source=videoJson['link'])
+    if len(videoJson['caption']['text']) > 300:
+        caption = "Caption too long posted in comments"
+        long = True
+    else:
+        long = False
+    commentstring = generateCommentText(caption=caption, source=videoJson['link'], tooLong=long)
+    submittedLink = submitToReddit(url=videoUrl, linkCaption=caption, commentString=commentstring)
+    #TODO link already submitted error
     r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
     logStuff("Selected flair for " + instagramUsername)
     logStuff("Finished Processing video for " + instagramUsername + " Videoid:" + videoJson['id'])
@@ -272,6 +282,30 @@ def updateWithId(iddict):
             writeToDateJson(date=int(m['created_time']), username=m['user']['username'])
 
 
+# Update the JSON file with current json list
+def updateJSON():
+  with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
+    json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
+  logStuff("Updated Jsonfile")
+
+
+# Check all ids in jsonID
+def checkAll():
+    for ids in jsonIdData:
+        updateWithId(ids)
+
+
+# Check Specific user, looks for user in json
+def checkUser(user):
+    if checkIfNameInData(user):
+        for id in jsonIdData:  # Parse through list to find the id there is probably a better way to do this or organize data better but idk what it is
+            if id['name'] == str(user):
+                updateWithId(id)
+        updateJSON()
+    else:
+        print "error " + arg + " does not exist in JSON file"
+
+
 if __name__ == "__main__":  # Only runs if not loaded as a module
     arguments = sys.argv[1:]  # Get arguments after the command run
     try:
@@ -279,25 +313,14 @@ if __name__ == "__main__":  # Only runs if not loaded as a module
     except getopt.GetoptError:
         print ('arg not recongnized')
     for opt, arg in opts:
-        if opt in ('-t, --test'):
+        if opt in ('-t', '--test'):
             print 'test'
         elif opt in ('-u', '--user'):
-            if checkIfNameInData(username=arg):
-                for id in jsonIdData:  # Parse through list to find the id there is probably a better way to do this or organize data better but idk what it is
-                    if id['name'] == str(arg):
-                        updateWithId(id)
-                with open(os.path.join(current_path, TARGET_JSON_FILE),'wb') as newjsonfile:  # Part where we write to file
-                    json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': '))
-                logStuff("Updated Jsonfile")
-            else:
-                print "error " + arg + " does not exist in config"
+            checkUser(arg)
         elif opt in ('-c', '--check'):
             logStuff("Running Check Command")
-            for ids in jsonIdData:
-                updateWithId(ids)
-            with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
-                json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
-            logStuff("Updated Jsonfile")
+            checkAll()
+            updateJSON()
         elif opt in ('-h', '--help'):
             print 'The current commands are:'
             print '--user, -u: Params: (Username), update a specific id'

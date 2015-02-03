@@ -2,6 +2,7 @@ __author__ = 'Timothy'
 import Instagrambot
 import os
 import datetime
+import time
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
@@ -79,9 +80,16 @@ def submitchanges():
     print request.form
     return 'placeholder'
 
-
+def loopThread():
+    interval = 15
+    runNow = False
+    previousCheckTime = time.time() #set oldcheck time as current when thread starts
+    print "placeholder"
+    while True:
+        current_time = time.time()
+        if runNow:
+            Instagrambot.up
+            continue
+        if current_time >= previousCheckTime + (interval * 60):
+            print 'help'
 app.run()
-
-
-
-
