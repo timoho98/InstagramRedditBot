@@ -3,11 +3,22 @@ import Instagrambot
 import os
 import datetime
 import time
+import ConfigParser
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
 current_path = os.path.abspath(os.path.dirname(__file__))
+# Load Config
+config = ConfigParser.ConfigParser()
+config.read(os.path.join(current_path, 'config.ini'))
+
+# Variables that are checked in thread
+interval = config.get("ScriptSettings", "Interval")
+checkAllNow = False
+updateTime = False
+checkUser = False
+checkUserId = 0;
 
 
 def getLogFiles(dir_='./logs/'):
@@ -80,16 +91,32 @@ def submitchanges():
     print request.form
     return 'placeholder'
 
+
 def loopThread():
-    interval = 15
-    runNow = False
-    previousCheckTime = time.time() #set oldcheck time as current when thread starts
+    previousCheckTime = time.time()  # set oldcheck time as current when thread starts
     print "placeholder"
     while True:
         current_time = time.time()
-        if runNow:
-            Instagrambot.up
+        if checkAllNow:
+            if updateTime:
+                previousCheckTime = time.time()
+                updateTime = False
+            Instagrambot.checkAll()
+            checkAllNow = False
             continue
-        if current_time >= previousCheckTime + (interval * 60):
-            print 'help'
+        if previousCheckTime is not 0:
+            if current_time >= previousCheckTime + (interval * 60):
+                # Set new check time
+                previousCheckTime = time.time()  # Set new time
+                print 'Time Check'
+                continue
+        if checkUser:
+            if checkUserId is not 0:
+                Instagrambot.checkUser(checkUserId)
+                checkUserId = 0  # Reset Id
+            else:
+                print "User Id is empty"
+            checkUser = False
+            continue
+
 app.run()

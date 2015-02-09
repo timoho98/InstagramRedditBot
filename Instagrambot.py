@@ -22,7 +22,7 @@ REDDIT_USERAGENT = config.get("reddit", "userAgent")
 REDDIT_USERNAME = config.get("reddit", "username")
 REDDIT_PASSWORD = config.get("reddit", "password")
 REDDIT_SUBREDDIT = config.get("reddit", "subreddit")
-TARGET_JSON_FILE = config.get("File", "Name")
+TARGET_JSON_FILE = config.get("ScriptSettings", "Name")
 # TODO Video processing (kinda done?)
 # TODO Error Handling for instagram and Reddit
 
@@ -268,7 +268,7 @@ def processVideo(videoJson):
 # Check instagram for new pictures with particular id
 def updateWithId(iddict):
     mediaJSON = getMediaJSON(iddict)
-    # TODO Change to logstuff
+    # TODO Add to logstuff
     print "Checking user:" + iddict['name']
     print "Last Date:" + str(iddict['lastdate'])
     # print "Print mediajson " + str(mediaJSON)
@@ -284,9 +284,9 @@ def updateWithId(iddict):
 
 # Update the JSON file with current json list
 def updateJSON():
-  with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
-    json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
-  logStuff("Updated Jsonfile")
+    with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
+        json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
+    logStuff("Updated Jsonfile")
 
 
 # Check all ids in jsonID
@@ -301,9 +301,8 @@ def checkUser(user):
         for id in jsonIdData:  # Parse through list to find the id there is probably a better way to do this or organize data better but idk what it is
             if id['name'] == str(user):
                 updateWithId(id)
-        updateJSON()
     else:
-        print "error " + arg + " does not exist in JSON file"
+        print "error " + user + " does not exist in JSON file"
 
 
 if __name__ == "__main__":  # Only runs if not loaded as a module
@@ -317,6 +316,7 @@ if __name__ == "__main__":  # Only runs if not loaded as a module
             print 'test'
         elif opt in ('-u', '--user'):
             checkUser(arg)
+            updateJSON()
         elif opt in ('-c', '--check'):
             logStuff("Running Check Command")
             checkAll()
