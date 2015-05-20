@@ -40,41 +40,74 @@ with open(os.path.join(current_path, TARGET_JSON_FILE)) as jsonIdFile:
 # jsonIdData is used as reference to old data so updatedJson can be changed without waiting for program to end
 updatedJson = copy.deepcopy(jsonIdData)
 
+# Update Functions
+# Check instagram for new pictures with particular id
+def updateWithId(iddict):
+    mediaJSON = getMediaJSON(iddict)
+    # TODO Add to logstuff
+    print "Checking user:" + iddict['name']
+    print "Last Date:" + str(iddict['lastdate'])
+    # print "Print mediajson " + str(mediaJSON)
+    for m in mediaJSON['data']:
+        if checkImage(media=m, idJson=iddict):
+            if m['type'] == 'image':
+                processImage(m)
+            elif m['type'] == 'video':
+                processVideo(m)
+            # lastpartoflink = getEndOfLink(m['link'])
+            writeToDateJson(date=int(m['created_time']), username=m['user']['username'])
 
-# automaticly adds the new like '\n' at the end of every entry
-def logStuff(text):
-    time_ = datetime.datetime.utcfromtimestamp(time.time()).strftime('%H:%M:%S')
-    date = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%d')
-    print ("Logged: '" + text + "' in " + date + ".log at " + time_)
-    log = open(os.path.join(current_path + '\\logs', date + ".log"), "ab")
-    log.write(date + " " + time_ + ": " + text + '\n')
-    log.close()
+
+# Update the JSON file with current updatedjson list
+def updateJSON():
+    with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
+        json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
+    logStuff("Updated Jsonfile")
 
 
-# uploads image to imgur returns False if fails, params need .jpq url and title
-def imgurUpload(imageUrl, title):
-    header = {"Authorization": "Client-ID " + IMGUR_CLIENT_ID}
-    data = {'image': imageUrl,
-            'title': title,
-            'key': IMGUR_CLIENT_SECRET}
-    response = requests.post(url='https://api.imgur.com/3/upload.json', data=data, headers=header)
-    j = json.loads(response.text)
-    if j['success']:
-        img_url = j['data']['link']
-        logStuff("Uploaded Image to " + img_url)
-        return j
+# Update lastpost dates to current dates
+def updateLastdate(user='all'):
+    if user == 'all':
+        logStuff('Updating lastDates for all users')
+        for ids in jsonIdData:
+            userJSON = getMediaJSON(ids)
+            for media in userJSON:
+                if updatedJson['lastdate'] < media['created_time']:
+                    writeToDateJson(date=int(userJSON['created_time']), username=userJSON['user']['username'])
     else:
-        print j['status']
-        print "Failed"
-        logStuff("Failed to Upload Image returned with error " + str(j['status']))
-        return j
+        if checkIfNameInData(user):
+            logStuff('Updating lastDates for ' + user)
+            userJSON = getMediaJSON(getJsonDict(user))
+            for media in userJSON:
+                if updatedJson['lastdate'] < media['created_time']:
+                    writeToDateJson(date=int(userJSON['created_time']), username=userJSON['user']['username'])
+        else:
+            print 'ERROR ' + user + ' does not exist in JSON file'
 
 
+# Check all ids in jsonID
+def updateAll():
+    for ids in jsonIdData:
+        updateWithId(ids)
+
+
+# Check Specific user, looks for user in json
+def updateUser(user):
+    if checkIfNameInData(user):
+        for id in jsonIdData:  # Parse through list to find the id there is probably a better way to do this or organize data better but idk what it is
+            if id['name'] == str(user):
+                updateWithId(id)
+    else:
+        print "ERROR " + user + " does not exist in JSON file"
+
+
+# Check Functions
 # check if username exists in data jsoniddata
 def checkIfNameInData(username):
     for i in jsonIdData:
         if i['name'] == username:
             return True
+    print 'ERROR ' + username + ' does not exist in JSON file'
     return False
 
 
@@ -86,29 +119,32 @@ def checkIdInData(userId):
     return False
 
 
-# choose flair based on username returns a html flair id, params needed, username
-def chooseFlair(username):
-    for i in jsonIdData:
-        if i['name'] == username:
-            flairid = i['flairid']
-            return flairid
-
-
-# more updated version of write to date updates json file with data and username
-def writeToDateJson(date, username):
-    if type(date) is int:
-        global updatedJson  # updates global var
-        for j in updatedJson:
-            # Make sure you actually write the 'LastDate' as media not in chronological order
-            # TODO attempt to make it chornological
-            if j['name'] == username:
-                if j['lastdate'] < date:
-                    j['lastdate'] = date
-                    logStuff('Updated last date to ' + str(date) + ' for:' + username)
+# Check if image is later than the lastdate on file, returns a true or false
+def checkImage(media, idJson):
+    instagramUsername = media['user']['username']
+    lastDate = idJson['lastdate']
+    createdTime = int(media['created_time'])
+    if createdTime > lastDate:  # check date then check filetype
+        logStuff("New Media for " + instagramUsername + " found at :" + media[
+            'link'] + " created date:" + datetime.datetime.utcfromtimestamp(createdTime).strftime(
+            '%Y-%m-%d %H:%M:%S') + " after Last-Date:" + datetime.datetime.utcfromtimestamp(lastDate).strftime(
+            '%Y-%m-%d %H:%M:%S'))
+        return True
     else:
-        print 'Date provided to writeToDateJson not a int'
+        # print media['link'] +" " +media['created_time'] + ' olderthan' + lastdate
+        return False
 
 
+# OUTDATED USELESS
+# check if json is video or image, returns a 1 if image, returns a 2 if video
+def checkType(imageMedia):
+    if imageMedia['type'] == 'image':
+        return 1
+    elif imageMedia['type'] == 'video':
+        return 2
+
+
+# Get Functions
 # Gets the last part of a instagramlink for later uses
 def getEndOfLink(link):
     endpart = link.split('/')
@@ -151,13 +187,93 @@ def getListIdDate():
     return idDateString
 
 
+# Instagram Related Functions
 # Get json of most recent media param Userid dict from json
 def getMediaJSON(userId):
-    mediaReturn = requests.get('https://api.instagram.com/v1/users/' + str(
-        userId['userid']) + '/media/recent/?client_id=' + INSTAGRAM_CLIENT_ID)
+    mediaReturn = requests.get('https://api.instagram.com/v1/users/' + str(userId['userid']) + '/media/recent/?client_id=' + INSTAGRAM_CLIENT_ID)
     logStuff("Request JSON of InstaId:" + str(userId['name']) + " User Id:" + str(userId['userid']))
     mediaReturnJSON = mediaReturn.json()
     return mediaReturnJSON
+
+
+# process the media given a media json
+def processImage(imageJson):
+    instagramUsername = imageJson['user']['username']
+    # Gather data from media obj
+    imageUrl = imageJson['images']['standard_resolution']['url']
+    if imageJson['caption'] is None:  # Check if there is a caption or not
+        print "Text/title dne"
+        caption = "No Caption"
+    else:
+        caption = imageJson['caption']['text']
+        # print 'Caption:' + caption #Removed because cant print special chars
+    # print str(imagemedia['caption'])
+    logStuff("Starting Upload of image " + str(imageJson['link']))
+    imgurjson = imgurUpload(imageUrl, caption)
+    if imgurjson['success']:
+        # Check if caption is greater than 300 char
+        if len(imageJson['caption']['text']) > 300:
+            caption = "Caption too long posted in comments"
+            commentToLong = True
+        else:
+            commentToLong = False
+        commentstring = generateCommentText(caption=caption, source=imageJson['link'], tooLong=commentToLong)
+        submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, commentString=commentstring)
+        r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
+        logStuff("Selected flair for " + instagramUsername)
+        # flair_template_id= 'd1e51b54-5fb1-11e4-a579-12313b0e5086') #flair_template_id= chooseflair(username = Instagram_username))
+    logStuff("Finished Processing image for " + instagramUsername + " Imageid: " + imageJson['id'])
+
+
+# Do processing for video
+def processVideo(videoJson):
+    instagramUsername = videoJson['user']['username']
+    videoUrl = videoJson['videos']['standard_resolution']['url']
+    if videoJson['caption'] is None:  # Check if there is a caption or not
+        print "Text/title dne"
+        caption = "No Caption"
+    else:
+        caption = videoJson['caption']['text']
+    if len(videoJson['caption']['text']) > 300:
+        caption = "Caption too long posted in comments"
+        commentToLong = True
+    else:
+        commentToLong = False
+    commentstring = generateCommentText(caption=caption, source=videoJson['link'], tooLong=commentToLong)
+    submittedLink = submitToReddit(url=videoUrl, linkCaption=caption, commentString=commentstring)
+    # TODO link already submitted error
+    r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
+    logStuff("Selected flair for " + instagramUsername)
+    logStuff("Finished Processing video for " + instagramUsername + " Videoid:" + videoJson['id'])
+
+
+# Imgur Related Functions
+# uploads image to imgur returns False if fails, params need .jpq url and title
+def imgurUpload(imageUrl, title):
+    header = {"Authorization": "Client-ID " + IMGUR_CLIENT_ID}
+    data = {'image': imageUrl,
+            'title': title,
+            'key': IMGUR_CLIENT_SECRET}
+    response = requests.post(url='https://api.imgur.com/3/upload.json', data=data, headers=header)
+    j = json.loads(response.text)
+    if j['success']:
+        img_url = j['data']['link']
+        logStuff("Uploaded Image to " + img_url)
+        return j
+    else:
+        print j['status']
+        print "Failed"
+        logStuff("Failed to Upload Image returned with error " + str(j['status']))
+        return j
+
+
+# Reddit Related Functions
+# choose flair based on username returns a html flair id, params needed, username
+def chooseFlair(username):
+    for i in jsonIdData:
+        if i['name'] == username:
+            flairid = i['flairid']
+            return flairid
 
 
 # TODO add caption to comment if caption too long
@@ -189,120 +305,29 @@ def submitToReddit(url, linkCaption, commentString):
     return redditSubmission
 
 
-# Check if image is later than the lastdate on file, returns a true or false
-def checkImage(media, idJson):
-    instagramUsername = media['user']['username']
-    lastDate = idJson['lastdate']
-    createdTime = int(media['created_time'])
-    if createdTime > lastDate:  # check date then check filetype
-        logStuff("New Media for " + instagramUsername + " found at :" + media[
-            'link'] + " created date:" + datetime.datetime.utcfromtimestamp(createdTime).strftime(
-            '%Y-%m-%d %H:%M:%S') + " after Last-Date:" + datetime.datetime.utcfromtimestamp(lastDate).strftime(
-            '%Y-%m-%d %H:%M:%S'))
-        return True
+# automaticly adds the new like '\n' at the end of every entry
+def logStuff(text):
+    time_ = datetime.datetime.utcfromtimestamp(time.time()).strftime('%H:%M:%S')
+    date = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%d')
+    print ("Logged: '" + text + "' in " + date + ".log at " + time_)
+    log = open(os.path.join(current_path + '\\logs', date + ".log"), "ab")
+    log.write(date + " " + time_ + ": " + text + '\n')
+    log.close()
+
+
+# more updated version of write to date updates json file with data and username
+def writeToDateJson(date, username):
+    if type(date) is int:
+        global updatedJson  # updates global var
+        for j in updatedJson:
+            # Make sure you actually write the 'LastDate' as media does not process in chronological order
+            # TODO attempt to make it chornological
+            if j['name'] == username:
+                if j['lastdate'] < date:
+                    j['lastdate'] = date
+                    logStuff('Updated last date to ' + str(date) + ' for:' + username)
     else:
-        # print media['link'] +" " +media['created_time'] + ' olderthan' + lastdate
-        return False
-
-
-# OUTDATED USELESS
-# check if json is video or image, returns a 1 if image, returns a 2 if video
-def checkType(imageMedia):
-    if imageMedia['type'] == 'image':
-        return 1
-    elif imageMedia['type'] == 'video':
-        return 2
-
-
-# process the media given a media json
-def processImage(imageJson):
-    instagramUsername = imageJson['user']['username']
-    # Gather data from media obj
-    imageUrl = imageJson['images']['standard_resolution']['url']
-    if imageJson['caption'] is None:  # Check if there is a caption or not
-        print "Text/title dne"
-        caption = "No Caption"
-    else:
-        caption = imageJson['caption']['text']
-        # print 'Caption:' + caption #Removed because cant print special chars
-    # print str(imagemedia['caption'])
-    logStuff("Starting Upload of image " + str(imageJson['link']))
-    imgurjson = imgurUpload(imageUrl, caption)
-    if imgurjson['success']:
-        # Check if caption is greater than 300 char
-        if len(imageJson['caption']['text']) > 300:
-            caption = "Caption too long posted in comments"
-            long = True
-        else:
-            long = False
-        commentstring = generateCommentText(caption=caption, source=imageJson['link'], tooLong=long)
-        submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, commentString=commentstring)
-        r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
-        logStuff("Selected flair for " + instagramUsername)
-        # flair_template_id= 'd1e51b54-5fb1-11e4-a579-12313b0e5086') #flair_template_id= chooseflair(username = Instagram_username))
-    logStuff("Finished Processing image for " + instagramUsername + " Imageid: " + imageJson['id'])
-
-
-# Do processing for video
-def processVideo(videoJson):
-    instagramUsername = videoJson['user']['username']
-    videoUrl = videoJson['videos']['standard_resolution']['url']
-    if videoJson['caption'] is None:  # Check if there is a caption or not
-        print "Text/title dne"
-        caption = "No Caption"
-    else:
-        caption = videoJson['caption']['text']
-    if len(videoJson['caption']['text']) > 300:
-        caption = "Caption too long posted in comments"
-        long = True
-    else:
-        long = False
-    commentstring = generateCommentText(caption=caption, source=videoJson['link'], tooLong=long)
-    submittedLink = submitToReddit(url=videoUrl, linkCaption=caption, commentString=commentstring)
-    #TODO link already submitted error
-    r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
-    logStuff("Selected flair for " + instagramUsername)
-    logStuff("Finished Processing video for " + instagramUsername + " Videoid:" + videoJson['id'])
-
-
-# Check instagram for new pictures with particular id
-def updateWithId(iddict):
-    mediaJSON = getMediaJSON(iddict)
-    # TODO Add to logstuff
-    print "Checking user:" + iddict['name']
-    print "Last Date:" + str(iddict['lastdate'])
-    # print "Print mediajson " + str(mediaJSON)
-    for m in mediaJSON['data']:
-        if checkImage(media=m, idJson=iddict):
-            if m['type'] == 'image':
-                processImage(m)
-            elif m['type'] == 'video':
-                processVideo(m)
-            # lastpartoflink = getEndOfLink(m['link'])
-            writeToDateJson(date=int(m['created_time']), username=m['user']['username'])
-
-
-# Update the JSON file with current json list
-def updateJSON():
-    with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
-        json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
-    logStuff("Updated Jsonfile")
-
-
-# Check all ids in jsonID
-def checkAll():
-    for ids in jsonIdData:
-        updateWithId(ids)
-
-
-# Check Specific user, looks for user in json
-def checkUser(user):
-    if checkIfNameInData(user):
-        for id in jsonIdData:  # Parse through list to find the id there is probably a better way to do this or organize data better but idk what it is
-            if id['name'] == str(user):
-                updateWithId(id)
-    else:
-        print "error " + user + " does not exist in JSON file"
+        print 'Date provided to writeToDateJson not a int'
 
 
 if __name__ == "__main__":  # Only runs if not loaded as a module
@@ -315,11 +340,11 @@ if __name__ == "__main__":  # Only runs if not loaded as a module
         if opt in ('-t', '--test'):
             print 'test'
         elif opt in ('-u', '--user'):
-            checkUser(arg)
+            updateUser(arg)
             updateJSON()
         elif opt in ('-c', '--check'):
             logStuff("Running Check Command")
-            checkAll()
+            updateAll()
             updateJSON()
         elif opt in ('-h', '--help'):
             print 'The current commands are:'

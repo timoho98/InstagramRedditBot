@@ -11,10 +11,14 @@ Last Date: {{lastdate}}<br>
 FlairId: {{flairid}}<br>
 Change stuff below<br>
 <form action="/submitchanges" method="POST">
+    ID:
     <input type='text' name='id' value={{id}}><br>
+    Name:
     <input type='text' name='name' value={{name}}><br>
+    FlairId:
     <input type='text' name='flairid' value={{flairid}}><br>
     Input in format Year-Month-Day Hour-Minutes-Seconds<br>
+    Last Date:
     <input type='text' name='lastdate' value={{lastdate}}><br>
     <input type='submit' value='submit'>
 </form>

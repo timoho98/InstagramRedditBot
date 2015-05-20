@@ -4,6 +4,7 @@ import os
 import datetime
 import time
 import ConfigParser
+import threading
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
@@ -15,10 +16,11 @@ config.read(os.path.join(current_path, 'config.ini'))
 
 # Variables that are checked in thread
 interval = config.get("ScriptSettings", "Interval")
+updateDates = False
 checkAllNow = False
 updateTime = False
 checkUser = False
-checkUserId = 0;
+checkUserId = 0
 
 
 def getLogFiles(dir_='./logs/'):
@@ -79,7 +81,7 @@ def logsnoparam():
 @app.route('/logs/<date>/')
 def logs(date):
     print date
-    with open(os.path.join(current_path + '\\logs', date)) as log:
+    with open(os.path.join(current_path + '/logs', date)) as log:
         textInFile = log.read()
     textInFile = textInFile.split('\n')
     # return textInFile
@@ -91,32 +93,43 @@ def submitchanges():
     print request.form
     return 'placeholder'
 
-
+# Loop that calls the Instagram Checkstuff things can be activated from automaticly through time or from the webgui
+# TODO Finish all the possible Automated things
+# TODO Finish Deadling with All Possible Web gui calls
 def loopThread():
     previousCheckTime = time.time()  # set oldcheck time as current when thread starts
     print "placeholder"
     while True:
         current_time = time.time()
-        if checkAllNow:
-            if updateTime:
-                previousCheckTime = time.time()
-                updateTime = False
-            Instagrambot.checkAll()
-            checkAllNow = False
-            continue
+        # Automated Things
         if previousCheckTime is not 0:
             if current_time >= previousCheckTime + (interval * 60):
                 # Set new check time
                 previousCheckTime = time.time()  # Set new time
                 print 'Time Check'
                 continue
+        #Called from WebGui Stuff
+        if updateDates:
+            print 'Update Dates'
+
+            updateDates = False
+        if checkAllNow:
+            print 'Check All Now'
+            if updateTime:
+                previousCheckTime = time.time()
+                updateTime = False
+            Instagrambot.updateAll()
+            checkAllNow = False
+            continue
         if checkUser:
+            print 'Check User'
             if checkUserId is not 0:
-                Instagrambot.checkUser(checkUserId)
+                Instagrambot.updateUser(checkUserId)
                 checkUserId = 0  # Reset Id
             else:
                 print "User Id is empty"
             checkUser = False
             continue
+Instagrambot = threading.Thread
 
 app.run()
