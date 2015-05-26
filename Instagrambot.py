@@ -69,20 +69,19 @@ def updateJSON():
 def updateLastdate(user='all'):
     if user == 'all':
         logStuff('Updating lastDates for all users')
-        for ids in jsonIdData:
-            userJSON = getMediaJSON(ids)
-            for media in userJSON:
-                if updatedJson['lastdate'] < media['created_time']:
-                    writeToDateJson(date=int(userJSON['created_time']), username=userJSON['user']['username'])
+        for ids in updatedJson:
+            userMediaJSON = getMediaJSON(ids)
+            for media in userMediaJSON['data']:
+                if ids['lastdate'] < int(media['created_time']):
+                    writeToDateJson(date=int(media['created_time']), username=media['user']['username'])
     else:
         if checkIfNameInData(user):
             logStuff('Updating lastDates for ' + user)
-            userJSON = getMediaJSON(getJsonDict(user))
-            for media in userJSON:
-                if updatedJson['lastdate'] < media['created_time']:
-                    writeToDateJson(date=int(userJSON['created_time']), username=userJSON['user']['username'])
-        else:
-            print 'ERROR ' + user + ' does not exist in JSON file'
+            userJSON = getJsonDict(user, getFromUpdatedJSON=True)
+            userMediaJSON = getMediaJSON(userJSON)
+            for media in userMediaJSON['data']:
+                if userJSON['lastdate'] < media['created_time']:
+                    writeToDateJson(date=int(media['created_time']), username=media['user']['username'])
 
 
 # Check all ids in jsonID
@@ -97,8 +96,6 @@ def updateUser(user):
         for id in jsonIdData:  # Parse through list to find the id there is probably a better way to do this or organize data better but idk what it is
             if id['name'] == str(user):
                 updateWithId(id)
-    else:
-        print "ERROR " + user + " does not exist in JSON file"
 
 
 # Check Functions
@@ -168,13 +165,17 @@ def getIdFromName(name):
 
 
 # Get Json Dict from id or name
-def getJsonDict(id):
+def getJsonDict(id, getFromUpdatedJSON = False):
+    if getFromUpdatedJSON == True:
+        jsonList = updatedJson
+    else:
+        jsonList = jsonIdData
     if type(id) is int:
-        for i in jsonIdData:
+        for i in jsonList:
             if i['id'] == id:
                 return i
     if type(id) is str:
-        for i in jsonIdData:
+        for i in jsonList:
             if i['name'] == id:
                 return i
 
@@ -333,7 +334,7 @@ def writeToDateJson(date, username):
 if __name__ == "__main__":  # Only runs if not loaded as a module
     arguments = sys.argv[1:]  # Get arguments after the command run
     try:
-        opts, args = getopt.getopt(arguments, 'tu:chl', ['test', 'user=', 'check', 'help', 'list'])
+        opts, args = getopt.getopt(arguments, 'tu:chld:', ['test', 'user=', 'check', 'help', 'list', 'updatedate='])
     except getopt.GetoptError:
         print ('arg not recongnized')
     for opt, arg in opts:
@@ -350,7 +351,10 @@ if __name__ == "__main__":  # Only runs if not loaded as a module
             print 'The current commands are:'
             print '--user, -u: Params: (Username), update a specific id'
             print '--check, -c: No Params: basically go through all ids and check'
+            print '--updatedate, -d: Param: (Username), update the lastdate of the user, leave blank for all users'
         elif opt in ('-l', 'list'):
             print getListIds()
+        elif opt in ('-d', '--updatedate'):
+            updateLastdate(arg)
         else:
             print 'No argument detected, use -h or --help at the end of console command to bring up a list of arguments'

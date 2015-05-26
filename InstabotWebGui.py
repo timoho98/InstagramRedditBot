@@ -20,6 +20,7 @@ updateDates = False
 checkAllNow = False
 updateTime = False
 checkUser = False
+autoCheck = False
 checkUserId = 0
 
 
@@ -102,7 +103,7 @@ def loopThread():
     while True:
         current_time = time.time()
         # Automated Things
-        if previousCheckTime is not 0:
+        if autoCheck:
             if current_time >= previousCheckTime + (interval * 60):
                 # Set new check time
                 previousCheckTime = time.time()  # Set new time
@@ -111,7 +112,6 @@ def loopThread():
         #Called from WebGui Stuff
         if updateDates:
             print 'Update Dates'
-
             updateDates = False
         if checkAllNow:
             print 'Check All Now'
