@@ -184,7 +184,7 @@ def getJsonDict(id, getFromUpdatedJSON = False):
 def getListIdDate():
     idDateString = []
     for id_ in jsonIdData:
-        idDateString.append(id_['name'] + ' - ' + str(datetime.datetime.utcfromtimestamp(id_['lastdate'])) + '\n')
+        idDateString.append(id_['name'] + ' - ' + str(datetime.datetime.utcfromtimestamp(id_['lastdate'])))
     return idDateString
 
 

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    General Functions
+    <form action="/status" method="post">
+	    <input type="submit" name="action" value="Updatedates">
+        <br>
+	    <input type="submit" name="action" value="CheckAllNow">
+    </form>
+    <br>
+    Change PeriodCheck settings
+    <form action="/PeriodicCheck" method="post">
+	    <input type="radio" name="onoff" value=on>On
+        <br>
+        <input type="radio" name="onoff" value=off>Off
+        <br>
+        Interval:
+        <input type="number" name="minutes">
+        <br>
+        <input type="submit" name="UpdateSettings" value="UpdateSettings">
+    </form>
+    <br>
+    Check a specific User
+    <form action="/Checkuser" method="post">
+	    {% for id in idlist %}
+            <input type="radio" name="name" value={{id['name']}}>{{id['name']}}<br>
+        {% endfor %}
+        <input type="submit" name="CheckUser" value="CheckUser">
+    </form>
+    <br>
+    <div>
+    Are there any jobs not finished or running? {{everythingdone}} <br>
+    {% if not everythingdone %}
+        updateDates: {{updateDates}}<br>
+        checkAllNow: {{checkAllNow}}<br>
+        checkUser: {{checkUser}}<br>
+    {% endif %}
+    LastDates for Users:<br>
+    {% for lastdates in lastdatelist %}
+    {{lastdates}}<br>
+    {% endfor %}
+    <br>
+    Last Updated Automaticly:{{previouschecktime}}
+    Last Updated Manually:
+    Last Posted:
+    Stats
+    Time Running
+    Total Pictures Posted to imgur
+    Total Pictures Submitted to reddit
+    </div>
+</body>
+</html>

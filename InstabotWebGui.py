@@ -16,6 +16,7 @@ config.read(os.path.join(current_path, 'config.ini'))
 
 # Variables that are checked in thread
 interval = config.get("ScriptSettings", "Interval")
+ContinueRunning = True
 updateDates = False
 checkAllNow = False
 updateTime = False
@@ -23,6 +24,8 @@ checkUser = False
 autoCheck = False
 checkUserId = 0
 
+#Stats
+LastManualCheck = 'None'
 
 def getLogFiles(dir_='./logs/'):
     filelist = []
@@ -37,12 +40,45 @@ def hello_world():
     return render_template("Index.html")
 
 
+@app.route('/dashboard')
+def dashboard():
+    iseverythingdone = False
+    global updateDates
+    global checkAllNow
+    if updateDates is False and checkAllNow is False and checkUser is False:
+        iseverythingdone = True
+    lastdates = Instagrambot.getListIdDate()
+    return render_template("dashboard.html", idlist=Instagrambot.jsonIdData, everythingdone=iseverythingdone, lastdatelist=lastdates, checkUser=checkUser, checkAllNow=checkAllNow, updateDates=updateDates, previouschecktime=previousCheckTime)
+
+
+@app.route('/status', methods=['POST', 'GET'])
+def status():
+    iseverythingdone = False
+    global updateDates
+    global checkAllNow
+    if updateDates is False and checkAllNow is False and checkUser is False:
+        iseverythingdone = True
+    if request.method == 'POST':
+        if request.form['action'] == 'CheckAllNow':
+            checkAllNow = True
+        elif request.form['action'] == 'Updatedates':
+            updateDates = True
+        else:
+            print 'placeholder'
+    lastdates = Instagrambot.getListIdDate()
+    return render_template("status.html", everythingdone=iseverythingdone, lastdatelist=lastdates, checkUser=checkUser, checkAllNow=checkAllNow, updateDates=updateDates, previouschecktime=previousCheckTime)
+
+
+## Below are Test Pages
 @app.route('/testrender', methods=['POST', 'GET'])
 def testrender():
+    global updateDates
     if request.method == 'POST':
         if request.form['thing'] == 'Do Something':
+            updateDates = True
             print "Do Something"
         elif request.form['thing'] == 'Do Something Else':
+            updateDates = True
             print "Else"
         else:
             print "placeholder"
@@ -98,9 +134,14 @@ def submitchanges():
 # TODO Finish all the possible Automated things
 # TODO Finish Deadling with All Possible Web gui calls
 def loopThread():
+    global updateDates
+    global checkAllNow
+    global checkUser
+    global autoCheck
+    global previousCheckTime
     previousCheckTime = time.time()  # set oldcheck time as current when thread starts
-    print "placeholder"
-    while True:
+    print "Started Instagrambot thread"
+    while ContinueRunning:
         current_time = time.time()
         # Automated Things
         if autoCheck:
@@ -115,21 +156,21 @@ def loopThread():
             updateDates = False
         if checkAllNow:
             print 'Check All Now'
-            if updateTime:
-                previousCheckTime = time.time()
-                updateTime = False
-            Instagrambot.updateAll()
+            global LastManualCheck
+            LastManualCheck = True
+            ##Instagrambot.updateAll()
             checkAllNow = False
             continue
         if checkUser:
             print 'Check User'
             if checkUserId is not 0:
-                Instagrambot.updateUser(checkUserId)
+                ##Instagrambot.updateUser(checkUserId)
                 checkUserId = 0  # Reset Id
             else:
                 print "User Id is empty"
             checkUser = False
             continue
-Instagrambot = threading.Thread
-
+Instagrambotthread = threading.Thread(target=loopThread)
+Instagrambotthread.setDaemon(True)
+Instagrambotthread.start()
 app.run()
