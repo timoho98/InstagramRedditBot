@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<>
 <head lang="en">
     <meta charset="UTF-8">
     <title></title>
 </head>
+
 <body>
     Are there any jobs not finished or running? {{everythingdone}} <br>
     {% if not everythingdone %}
@@ -23,5 +24,17 @@
     Time Running
     Total Pictures Posted to imgur
     Total Pictures Submitted to reddit
+
+    <br>
+    {% if checkuser %}
+        Checked User: {{idJson['name']}} <br>
+        Checked Id: {{idJson['userid']}} <br>
+        Checked LastDate: {{idLastDate}} <br>
+        {% for name in namelist %}
+            <br><a href='/status/{{name}}'>{{name}}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
 </body>
+
 </html>

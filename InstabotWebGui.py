@@ -54,19 +54,48 @@ def dashboard():
 @app.route('/status', methods=['POST', 'GET'])
 def status():
     iseverythingdone = False
+    isCheckUser = False
+    idJson = []
+    idLastDate = ""
     global updateDates
     global checkAllNow
     if updateDates is False and checkAllNow is False and checkUser is False:
         iseverythingdone = True
+    action = str(request.args.get("action"))
+    if request.method == 'GET':
+        if action is not 'None':
+            if action == 'CheckAllNow':
+                checkAllNow = True
+            elif action == 'Updatedates':
+                updateDates = True
+            else:
+                print 'placeholder'
     if request.method == 'POST':
-        if request.form['action'] == 'CheckAllNow':
-            checkAllNow = True
-        elif request.form['action'] == 'Updatedates':
-            updateDates = True
-        else:
-            print 'placeholder'
+        isCheckUser = True
+        global checkUserId
+        checkUserId = Instagrambot.getIdFromName(request.form['name'])
+        idJson = Instagrambot.getJsonDict(checkUserId)
+        idLastDate = Instagrambot.getLastDate(checkUserId)
+        print idLastDate
+    namelist = Instagrambot.getListIds()
     lastdates = Instagrambot.getListIdDate()
-    return render_template("status.html", everythingdone=iseverythingdone, lastdatelist=lastdates, checkUser=checkUser, checkAllNow=checkAllNow, updateDates=updateDates, previouschecktime=previousCheckTime)
+    return render_template("status.html", everythingdone=iseverythingdone, lastdatelist=lastdates, checkUser=checkUser, checkAllNow=checkAllNow,
+                           updateDates=updateDates, previouschecktime=previousCheckTime, namelist=namelist, checkuser=isCheckUser, idJson=idJson, idLastDate=idLastDate)
+
+@app.route('/status/<name>')
+def statusname(name):
+    return name
+@app.route('/checkuser', methods=['POST', 'GET'])
+def checkuser():
+    idJson = None
+    if request.method == 'POST':
+        global checkUserId
+        global checkUser
+        checkUser = True
+        checkUserId = Instagrambot.getIdFromName(request.form['name'])
+        idJson = Instagrambot.getJsonDict(checkUserId)
+        idLastDate = Instagrambot.getLastDate(checkUserId)
+    return render_template("checkuser.html", idJson=idJson, idLastdate=idLastDate)
 
 
 ## Below are Test Pages
@@ -84,6 +113,9 @@ def testrender():
             print "placeholder"
     return render_template("test.html")
 
+@app.route('/usercheck')
+def usercheck():
+    return render_template("usercheck.html", idlist=Instagrambot.jsonIdData)
 
 @app.route('/userclick', methods=['GET'])
 def listget():
@@ -97,13 +129,8 @@ def listget():
         return render_template("userclick.html", name=name, lastdate=lastdate, flairid=flairid, id=id_)
     else:
         print 'User Not Found'
-        return render_template('User Not Found')
     print request.args.get('id')
-
-
-@app.route('/checkuser')
-def checkuser():
-    return render_template("usercheck.html", idlist=Instagrambot.jsonIdData)
+    return 'User Not Found'
 
 
 @app.route('/logs/')
@@ -163,8 +190,10 @@ def loopThread():
             continue
         if checkUser:
             print 'Check User'
+            global checkUserId
             if checkUserId is not 0:
                 ##Instagrambot.updateUser(checkUserId)
+                print 'checking:' + checkUserId
                 checkUserId = 0  # Reset Id
             else:
                 print "User Id is empty"

@@ -63,7 +63,7 @@ def updateJSON():
     with open(os.path.join(current_path, TARGET_JSON_FILE), 'wb') as newjsonfile:  # Part where we write to file
         json.dump(updatedJson, newjsonfile, indent=4, separators=(', ', ': ')) #formating
     logStuff("Updated Jsonfile")
-
+    updateJSONfromfile()
 
 # Update lastpost dates to current dates
 def updateLastdate(user='all'):
@@ -82,6 +82,13 @@ def updateLastdate(user='all'):
             for media in userMediaJSON['data']:
                 if userJSON['lastdate'] < media['created_time']:
                     writeToDateJson(date=int(media['created_time']), username=media['user']['username'])
+
+
+def updateJSONfromfile():
+    global jsonIdData
+    with open(os.path.join(current_path, TARGET_JSON_FILE)) as jsonIdFile:
+        jsonIdData = json.load(jsonIdFile)
+    print 'Updated JSON from file'
 
 
 # Check all ids in jsonID
@@ -150,11 +157,10 @@ def getEndOfLink(link):
 
 # List Ids that exist in the json file
 def getListIds():
-    idString = ''
+    idList = []
     for id in jsonIdData:
-        idString += id['name']
-        idString += '\n'
-    return idString
+        idList.append(id['name'])
+    return idList
 
 
 # Get id from name input
@@ -162,6 +168,7 @@ def getIdFromName(name):
     for i in jsonIdData:
         if i['name'] == name:
             return i['userid']
+    return 'Name:' + name + 'does not exist in JSON'
 
 
 # Get Json Dict from id or name
@@ -172,7 +179,7 @@ def getJsonDict(id, getFromUpdatedJSON = False):
         jsonList = jsonIdData
     if type(id) is int:
         for i in jsonList:
-            if i['id'] == id:
+            if i['userid'] == id:
                 return i
     if type(id) is str:
         for i in jsonList:
@@ -187,6 +194,10 @@ def getListIdDate():
         idDateString.append(id_['name'] + ' - ' + str(datetime.datetime.utcfromtimestamp(id_['lastdate'])))
     return idDateString
 
+# Get LastDate from Id
+def getLastDate(id, getFromUpdatedJSON = False):
+    idJson = getJsonDict(id, getFromUpdatedJSON)
+    return str(datetime.datetime.utcfromtimestamp(idJson['lastdate']))
 
 # Instagram Related Functions
 # Get json of most recent media param Userid dict from json
