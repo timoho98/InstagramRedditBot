@@ -5,23 +5,27 @@ import datetime
 import time
 import ConfigParser
 import threading
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
 current_path = os.path.abspath(os.path.dirname(__file__))
+
 # Load Config
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(current_path, 'config.ini'))
 
 # Variables that are checked in thread
-interval = config.get("ScriptSettings", "Interval")
+interval = int(config.get("ScriptSettings", "Interval"))
+if config.get("ScriptSettings", "Autocheck") == 'True':
+    autoCheck = True
+else:
+    autoCheck = False
 ContinueRunning = True
 updateDates = False
 checkAllNow = False
 updateTime = False
 checkUser = False
-autoCheck = False
 checkUserId = 0
 
 #Stats
@@ -37,7 +41,7 @@ def getLogFiles(dir_='./logs/'):
 
 @app.route('/')
 def hello_world():
-    return render_template("Index.html")
+    return redirect("/dashboard", code=302)
 
 
 @app.route('/dashboard')
@@ -59,6 +63,7 @@ def status():
     idLastDate = ""
     global updateDates
     global checkAllNow
+    global checkUser
     if updateDates is False and checkAllNow is False and checkUser is False:
         iseverythingdone = True
     action = str(request.args.get("action"))
@@ -71,7 +76,7 @@ def status():
             else:
                 print 'placeholder'
     if request.method == 'POST':
-        isCheckUser = True
+        checkUser = True
         global checkUserId
         checkUserId = Instagrambot.getIdFromName(request.form['name'])
         idJson = Instagrambot.getJsonDict(checkUserId)
@@ -85,6 +90,8 @@ def status():
 @app.route('/status/<name>')
 def statusname(name):
     return name
+
+
 @app.route('/checkuser', methods=['POST', 'GET'])
 def checkuser():
     idJson = None
@@ -96,6 +103,23 @@ def checkuser():
         idJson = Instagrambot.getJsonDict(checkUserId)
         idLastDate = Instagrambot.getLastDate(checkUserId)
     return render_template("checkuser.html", idJson=idJson, idLastdate=idLastDate)
+
+
+@app.route('/periodiccheck', methods=['POST', 'GET'])
+def periodiccheck():
+    if request.method == 'POST':
+        global interval
+        global autoCheck
+        if request.form['onoff'] == 'on':
+            autoCheck = True
+        else:
+            autoCheck = False
+        interval = int(request.form['minutes'])
+        config.set("ScriptSettings", "Interval", interval)
+        config.set("ScriptSettings", "Autocheck", autoCheck)
+        with open(os.path.join(current_path, 'config.ini'), 'wb') as configfile:
+            config.write(configfile)
+    return render_template("periodiccheck.html", onoff = autoCheck, interval = interval)
 
 
 ## Below are Test Pages
@@ -174,29 +198,36 @@ def loopThread():
         if autoCheck:
             if current_time >= previousCheckTime + (interval * 60):
                 # Set new check time
+                Instagrambot.logStuff("AutoCheck at " + time.time())
                 previousCheckTime = time.time()  # Set new time
+                Instagrambot.updateAll()
+                Instagrambot.updateJSON()
                 print 'Time Check'
                 continue
         #Called from WebGui Stuff
         if updateDates:
             print 'Update Dates'
+            Instagrambot.updateLastdate()
+            Instagrambot.updateJSON()
             updateDates = False
         if checkAllNow:
             print 'Check All Now'
             global LastManualCheck
             LastManualCheck = True
-            ##Instagrambot.updateAll()
+            Instagrambot.updateAll()
+            Instagrambot.updateJSON()
             checkAllNow = False
             continue
         if checkUser:
             print 'Check User'
             global checkUserId
             if checkUserId is not 0:
-                ##Instagrambot.updateUser(checkUserId)
+                Instagrambot.updateUser(checkUserId)
                 print 'checking:' + checkUserId
                 checkUserId = 0  # Reset Id
             else:
                 print "User Id is empty"
+            Instagrambot.updateJSON()
             checkUser = False
             continue
 Instagrambotthread = threading.Thread(target=loopThread)

@@ -14,15 +14,15 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 # Get your key/secret from http://instagram.com/developer/
 config = ConfigParser.ConfigParser()
 config.read(os.path.join(current_path, 'config.ini'))
-INSTAGRAM_CLIENT_ID = config.get("instagram", "clientid")
-INSTAGRAM_CLIENT_SECRET = config.get("instagram", "clientsecret")
-IMGUR_CLIENT_ID = config.get("imgur", "clientid")
-IMGUR_CLIENT_SECRET = config.get("imgur", "clientsecret")
-REDDIT_USERAGENT = config.get("reddit", "userAgent")
-REDDIT_USERNAME = config.get("reddit", "username")
-REDDIT_PASSWORD = config.get("reddit", "password")
-REDDIT_SUBREDDIT = config.get("reddit", "subreddit")
-TARGET_JSON_FILE = config.get("ScriptSettings", "Name")
+INSTAGRAM_CLIENT_ID = config.get("Instagram", "Clientid")
+INSTAGRAM_CLIENT_SECRET = config.get("Instagram", "ClientSecret")
+IMGUR_CLIENT_ID = config.get("Imgur", "Clientid")
+IMGUR_CLIENT_SECRET = config.get("Imgur", "ClientSecret")
+REDDIT_USERAGENT = config.get("Reddit", "UserAgent")
+REDDIT_USERNAME = config.get("Reddit", "Username")
+REDDIT_PASSWORD = config.get("Reddit", "Password")
+REDDIT_SUBREDDIT = config.get("Reddit", "Subreddit")
+TARGET_JSON_FILE = config.get("ScriptSettings", "JSONFileName")
 # TODO Video processing (kinda done?)
 # TODO Error Handling for instagram and Reddit
 
@@ -344,28 +344,59 @@ def writeToDateJson(date, username):
 
 if __name__ == "__main__":  # Only runs if not loaded as a module
     arguments = sys.argv[1:]  # Get arguments after the command run
-    try:
-        opts, args = getopt.getopt(arguments, 'tu:chld:', ['test', 'user=', 'check', 'help', 'list', 'updatedate='])
-    except getopt.GetoptError:
-        print ('arg not recongnized')
-    for opt, arg in opts:
-        if opt in ('-t', '--test'):
-            print 'test'
-        elif opt in ('-u', '--user'):
-            updateUser(arg)
-            updateJSON()
-        elif opt in ('-c', '--check'):
-            logStuff("Running Check Command")
-            updateAll()
-            updateJSON()
-        elif opt in ('-h', '--help'):
-            print 'The current commands are:'
-            print '--user, -u: Params: (Username), update a specific id'
-            print '--check, -c: No Params: basically go through all ids and check'
-            print '--updatedate, -d: Param: (Username), update the lastdate of the user, leave blank for all users'
-        elif opt in ('-l', 'list'):
-            print getListIds()
-        elif opt in ('-d', '--updatedate'):
-            updateLastdate(arg)
-        else:
-            print 'No argument detected, use -h or --help at the end of console command to bring up a list of arguments'
+    if len(arguments) < 1:
+
+        while True:
+            print 'Running in Console, Ctrl+c to quit'
+            userinput = raw_input("Enter a Command")
+            userinput = userinput.split(" ")
+            if userinput[0] == 'test':
+                print 'test'
+            elif userinput[0] == 'help':
+                print 'The current commands are:'
+                print '"user" Params: (Username), update a specific id'
+                print '"check" No Params: basically go through all ids and check'
+                print '"updatedate" Param: (Username), update the lastdate of the user, leave blank for all users'
+            elif userinput[0] == 'check':
+                logStuff("Running Check Command")
+                updateAll()
+                updateJSON()
+            elif userinput[0] == 'user':
+                updateUser(userinput[1])
+                updateJSON()
+            elif userinput[0] == 'date':
+                if len(userinput) <= 1:
+                    updateLastdate()
+                else:
+                    updateLastdate(userinput[1])
+                updateJSON()
+            elif userinput[0] == 'quit':
+                sys.exit(0)
+            else:
+                print "Command not recongnized " + input[0]
+    else:
+        try:
+            opts, args = getopt.getopt(arguments, 'tu:chld:', ['test', 'user=', 'check', 'help', 'list', 'updatedate='])
+        except getopt.GetoptError:
+            print ('arg not recongnized')
+        for opt, arg in opts:
+            if opt in ('-t', '--test'):
+                print 'test'
+            elif opt in ('-u', '--user'):
+                updateUser(arg)
+                updateJSON()
+            elif opt in ('-c', '--check'):
+                logStuff("Running Check Command")
+                updateAll()
+                updateJSON()
+            elif opt in ('-h', '--help'):
+                print 'The current commands are:'
+                print '--user, -u: Params: (Username), update a specific id'
+                print '--check, -c: No Params: basically go through all ids and check'
+                print '--updatedate, -d: Param: (Username), update the lastdate of the user, leave blank for all users'
+            elif opt in ('-l', 'list'):
+                print getListIds()
+            elif opt in ('-d', '--updatedate'):
+                updateLastdate(arg)
+            else:
+                print 'No argument detected, use -h or --help at the end of console command to bring up a list of arguments'
