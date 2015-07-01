@@ -229,7 +229,7 @@ def processImage(imageJson):
             commentToLong = True
         else:
             commentToLong = False
-        commentstring = generateCommentText(caption=caption, source=imageJson['link'], tooLong=commentToLong)
+        commentstring = generateCommentText(caption=caption, mediaJson=imageJson, tooLong=commentToLong)
         submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, commentString=commentstring)
         r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
         logStuff("Selected flair for " + instagramUsername)
@@ -251,7 +251,7 @@ def processVideo(videoJson):
         commentToLong = True
     else:
         commentToLong = False
-    commentstring = generateCommentText(caption=caption, source=videoJson['link'], tooLong=commentToLong)
+    commentstring = generateCommentText(caption=caption, mediaJson=videoJson, tooLong=commentToLong)
     submittedLink = submitToReddit(url=videoUrl, linkCaption=caption, commentString=commentstring)
     # TODO link already submitted error
     r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
@@ -290,17 +290,51 @@ def chooseFlair(username):
 
 # TODO add caption to comment if caption too long
 # Generates Text for comment
-def generateCommentText(source, caption=None, tooLong = False):
-    commentString = "[Source](" + source + ")"  # format source text
+def generateCommentText(mediaJson, caption=None, tooLong = False):
+    # Source
+    commentString = "[Source](" + mediaJson['link'] + ")"  # format source text
+    # If caption too long to fit into title
     if tooLong:
-        commentString += "\n\n" + caption + ""
+        commentString += "\n\n" + "Caption: " + caption + ""
+    # Tags
+    if len(mediaJson['tags']) is not 0:
+        commentString += "\n\n Tags:"
+        for tag in mediaJson['tags']:
+            commentString += tag + ", "
+    else:
+        commentString += "\n\n No Tags"
+    # Location
+    if mediaJson['location'] is not None:
+        commentString += "\n\n Location:"
+        commentString += "\n\n Latitude: " + str(mediaJson['location']['latitude']) + " Longitude: " + str(mediaJson['location']['longitude'])
+        if 'street_adress' in mediaJson['location']:
+            commentString += "\n\n Street Adress: " + mediaJson['location']['street_adress']
+        if 'name' in mediaJson['location']:
+            commentString += "\n\n Name: " + mediaJson['location']['name']
+    else:
+        commentString += "\n\n No Location Listed"
+    # Users in Photo
+    if len(mediaJson['users_in_photo']) is not 0:
+        commentString += "\n\n Users in photo:"
+        for users in mediaJson['users_in_photo']:
+            commentString += "\n\n" + users['user']['full_name'] + " Username: " + users['user']['username']
+            commentString += "\n\n [Profile Link](" + "https://instagram.com/" + users['user']['username'] + ")"
+            commentString += "\n\n [Profile Picture](" + users['user']['profile_picture'] + ")"
+    else:
+        commentString += "\n\n No Users Tagged in Photo"
+    # Filters
+    commentString += "\n\n Filters: " + mediaJson['filter']
+    # Created Time
+    commentString += "\n\n Created Time(UTC): " + str(datetime.datetime.utcfromtimestamp(int(mediaJson['created_time'])))
+    if mediaJson['type'] == 'video':
+        commentString += "\n\n [Video Thumbnail](" + mediaJson['images']['standard_resolution']['url'] + ")"
     return commentString
 
 
 '''
 Expected output for comment
-Source #as link
-Created Time (Unix Epoch Time
+Source as link
+Created Time (Unix Epoch Time)
 Filter:
 Tags
 if video thumbnail
