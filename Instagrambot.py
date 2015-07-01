@@ -231,8 +231,12 @@ def processImage(imageJson):
             commentToLong = False
         commentstring = generateCommentText(caption=caption, mediaJson=imageJson, tooLong=commentToLong)
         submittedLink = submitToReddit(url=imgurjson['data']['link'], linkCaption=caption, commentString=commentstring)
-        r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
-        logStuff("Selected flair for " + instagramUsername)
+        userDict = getJsonDict(str(instagramUsername))
+        if userDict['flairid'] == 'None':
+            print "No flair selected"
+        else:
+            r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
+            logStuff("Selected flair for " + instagramUsername)
         # flair_template_id= 'd1e51b54-5fb1-11e4-a579-12313b0e5086') #flair_template_id= chooseflair(username = Instagram_username))
     logStuff("Finished Processing image for " + instagramUsername + " Imageid: " + imageJson['id'])
 
@@ -254,8 +258,12 @@ def processVideo(videoJson):
     commentstring = generateCommentText(caption=caption, mediaJson=videoJson, tooLong=commentToLong)
     submittedLink = submitToReddit(url=videoUrl, linkCaption=caption, commentString=commentstring)
     # TODO link already submitted error
-    r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
-    logStuff("Selected flair for " + instagramUsername)
+    userDict = getJsonDict(str(instagramUsername))
+    if userDict['flairid'] == 'None':
+        print "No flair selected"
+    else:
+        r.select_flair(item=submittedLink, flair_template_id=chooseFlair(username=instagramUsername))
+        logStuff("Selected flair for " + instagramUsername)
     logStuff("Finished Processing video for " + instagramUsername + " Videoid:" + videoJson['id'])
 
 
@@ -379,9 +387,8 @@ def writeToDateJson(date, username):
 if __name__ == "__main__":  # Only runs if not loaded as a module
     arguments = sys.argv[1:]  # Get arguments after the command run
     if len(arguments) < 1:
-
         while True:
-            print 'Running in Console, Ctrl+c to quit'
+            print 'Running in Console, quit to quit'
             userinput = raw_input("Enter a Command")
             userinput = userinput.split(" ")
             if userinput[0] == 'test':
@@ -390,7 +397,8 @@ if __name__ == "__main__":  # Only runs if not loaded as a module
                 print 'The current commands are:'
                 print '"user" Params: (Username), update a specific id'
                 print '"check" No Params: basically go through all ids and check'
-                print '"updatedate" Param: (Username), update the lastdate of the user, leave blank for all users'
+                print '"date" Param: (Username), update the lastdate of the user, leave blank for all users'
+                print '"quit" to quit'
             elif userinput[0] == 'check':
                 logStuff("Running Check Command")
                 updateAll()
@@ -407,7 +415,7 @@ if __name__ == "__main__":  # Only runs if not loaded as a module
             elif userinput[0] == 'quit':
                 sys.exit(0)
             else:
-                print "Command not recongnized " + input[0]
+                print "Command not recongnized " + userinput[0]
     else:
         try:
             opts, args = getopt.getopt(arguments, 'tu:chld:', ['test', 'user=', 'check', 'help', 'list', 'updatedate='])
