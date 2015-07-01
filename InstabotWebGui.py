@@ -198,7 +198,7 @@ def loopThread():
         if autoCheck:
             if current_time >= previousCheckTime + (interval * 60):
                 # Set new check time
-                Instagrambot.logStuff("AutoCheck at " + time.time())
+                Instagrambot.logStuff("AutoCheck at " + str(datetime.datetime.utcfromtimestamp(time.time())))
                 previousCheckTime = time.time()  # Set new time
                 Instagrambot.updateAll()
                 Instagrambot.updateJSON()
